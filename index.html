@@ -93,6 +93,9 @@
                         <button id="tab-btn-health" class="tab-button" data-tab="health">
                             Health & Fitness
                         </button>
+                        <button id="tab-btn-report" class="tab-button" data-tab="report">
+                            Report
+                        </button>
                     </nav>
                 </div>
 
@@ -115,6 +118,10 @@
                     <!-- Health Tab --><div id="tab-content-health" class="tab-content hidden">
                         <div id="healthStatsContainer" class="space-y-6">
                             <!-- Health stats dynamically inserted here --></div>
+                    </div>
+                    <!-- Report Tab --><div id="tab-content-report" class="tab-content hidden">
+                        <div id="reportContainer" class="space-y-6">
+                            <!-- Report text dynamically inserted here --></div>
                     </div>
                 </div>
             </div>
@@ -201,6 +208,7 @@
         const performanceStatsContainer = document.getElementById('performanceStatsContainer');
         const healthStatsContainer = document.getElementById('healthStatsContainer');
         const resultsHeader = document.getElementById('resultsHeader');
+        const reportContainer = document.getElementById('reportContainer'); // Added Report container
 
         // --- 3. CORE LOGIC ---
         
@@ -334,24 +342,29 @@
             resultsHeader.textContent = `Displaying results for ${selectedAthlete}`;
             performanceStatsContainer.innerHTML = '';
             healthStatsContainer.innerHTML = '';
+            reportContainer.innerHTML = ''; // Clear report container
             const datasets = [];
 
             selectedMonths.forEach((month, index) => {
                 if (appData[month] && Array.isArray(appData[month])) {
                     const athleteData = appData[month].find(a => a && `${a.Name} ${a.Surname}` === selectedAthlete);
                     if (athleteData) {
+                        const polygonData = calculatePolygonData(athleteData, selectedGender); // Calculate data once
+                        
                         datasets.push({
                             label: month,
-                            data: calculatePolygonData(athleteData, selectedGender),
+                            data: polygonData, // Use pre-calculated data
                             borderColor: comparisonColors[index % comparisonColors.length],
                             backgroundColor: `${comparisonColors[index % comparisonColors.length]}33`,
                             pointBackgroundColor: comparisonColors[index % comparisonColors.length],
-                            borderWidth: 3, // Bolder line
-                            pointRadius: 4, // Bigger points
-                            pointHoverRadius: 6, // Bigger points on hover
+                            borderWidth: 4, // Make line thicker
+                            pointRadius: 0, // Make points invisible by default
+                            pointHoverRadius: 7, // Make points pop on hover
+                            tension: 0 // Make lines straight (sharp corners)
                         });
                         displayPerformanceStats(athleteData, month, comparisonColors[index % comparisonColors.length]);
                         displayHealthStats(athleteData, month, comparisonColors[index % comparisonColors.length], selectedGender);
+                        displayReport(polygonData, month, comparisonColors[index % comparisonColors.length]); // Create report
                     }
                 }
             });
@@ -546,14 +559,55 @@
             return { barColor, barWidth };
         }
 
+        // --- NEW FUNCTIONS FOR REPORT ---
+
+        /**
+         * Translates a numeric score into a descriptive text and color.
+         * @param {number} score - The numeric score (0-10).
+         * @param {string} label - The label for the metric (e.g., "ΔΥΝΑΜΗ").
+         * @returns {object} - An object with { text, color }.
+         */
+        function getReportText(score, label) {
+            if (score <= 3) {
+                return { text: `ΜΕΙΩΜΕΝΗ ${label}`, color: '#ef4444' }; // Red
+            } else if (score <= 5) {
+                return { text: `ΚΑΝΟΝΙΚΗ ${label}`, color: '#22c55e' }; // Green
+            } else if (score <= 8) {
+                return { text: `ΥΨΗΛΗ ${label}`, color: '#facc15' }; // Yellow
+            } else {
+                return { text: `ΚΟΡΥΦΑΙΑ ${label}`, color: '#3b82f6' }; // Blue
+            }
+        }
+
+        /**
+         * Generates and displays the report for a single month.
+         * @param {number[]} polygonData - Array of scores from the polygon.
+         * @param {string} month - The name of the month.
+         * @param {string} color - The color associated with the month.
+         */
+        function displayReport(polygonData, month, color) {
+            let reportHtml = `
+                <div class="bg-gray-900/70 p-4 rounded-lg">
+                    <h4 class="text-lg font-bold" style="color: ${color};">${month}</h4>
+                    <ul class="list-disc list-inside mt-2 space-y-1 text-sm">`;
+
+            polygonLabels.forEach((label, index) => {
+                const score = polygonData[index];
+                const { text, color: textColor } = getReportText(score, label);
+                reportHtml += `
+                    <li>
+                        <span class="font-medium" style="color: ${textColor};">${text}</span>
+                    </li>`;
+            });
+
+            reportHtml += `</ul></div>`;
+            reportContainer.innerHTML += reportHtml;
+        }
+
         // --- 4. INITIALIZATION ---
         window.addEventListener('DOMContentLoaded', fetchData);
     </script>
 
 </body>
 </html>
-
-
-
-
 
