@@ -399,8 +399,17 @@
                 scores[config.label] = Math.max(0, Math.min(10, score));
             }
             
-            const totalPoints = Object.values(scores).reduce((sum, s) => sum + s, 0);
-            const athleticScore = totalPoints > 7 ? 2 : (totalPoints > 4 ? 1 : 0);
+            // --- UPDATED AΘΛΗΤΙΚΟΤΗΤΑ CALCULATION ---
+            let athleticScore = 0;
+            Object.values(scores).forEach(score => {
+                if (score > 7) {
+                    athleticScore += 2; // Add 2 points if score is > 7
+                } else if (score > 4) {
+                    athleticScore += 1; // Add 1 point if score is > 4
+                }
+                // If score is 4 or less, add 0 points
+            });
+            // --- END OF UPDATE ---
             
             return polygonLabels.map(label => label === 'ΑΘΛΗΤΙΚΟΤΗΤΑ' ? athleticScore : (scores[label] || 0));
         }
@@ -610,4 +619,5 @@
 
 </body>
 </html>
+
 
