@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Athlete Performance Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712; /* bg-gray-950 */
+            color: #f3f4f6; /* text-gray-100 */
+        }
+        /* Custom scrollbar for month list */
+        #monthCheckboxes::-webkit-scrollbar {
+            width: 6px;
+        }
+        #monthCheckboxes::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-700 */
+            border-radius: 10px;
+        }
+        #monthCheckboxes::-webkit-scrollbar-thumb {
+            background: #374151; /* bg-gray-600 */
+            border-radius: 10px;
+        }
+        #monthCheckboxes::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; /* bg-gray-500 */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 antialiased bg-gradient-to-b from-gray-950 to-gray-900">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Athlete Performance Analyzer</h1>
+            <p class="text-gray-400 mt-2">Track and Field</p>
+        </header>
+
+        <!-- Main Container --><main id="app-container" class="space-y-8">
+            
+            <!-- Loading/Error State --><div id="statusSection" class="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg p-6 rounded-xl text-center">
+                 <p id="statusText" class="flex items-center justify-center space-x-3 text-lg">
+                     <svg class="animate-spin h-5 w-5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                     <span>Connecting to Google Sheet...</span>
+                 </p>
+            </div>
+
+            <!-- Controls (hidden by default) --><div id="controlsSection" class="hidden bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg p-6 rounded-xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Column 1: Athlete & Gender -->
+                    <div class="space-y-6">
+                        <div>
+                             <label for="athleteSearch" class="block mb-2 text-sm font-medium text-gray-300">Athlete</label>
+                             <input type="text" id="athleteSearch" list="athleteList" class="w-full bg-gray-700/50 border-gray-600/50 text-white text-sm rounded-lg p-2.5 focus:ring-cyan-500 focus:border-cyan-500" placeholder="Search or select...">
+                             <datalist id="athleteList"></datalist>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm font-medium text-gray-300">Gender</label>
+                            <div id="genderSelection" class="flex items-center space-x-4 pt-2">
+                                <div class="flex items-center">
+                                    <input id="gender-male" name="gender" type="radio" value="male" class="w-4 h-4 text-cyan-600 bg-gray-700/50 border-gray-600/50 focus:ring-cyan-600 ring-offset-gray-800" checked>
+                                    <label for="gender-male" class="ml-2 text-sm font-medium text-gray-300">Man</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input id="gender-female" name="gender" type="radio" value="female" class="w-4 h-4 text-cyan-600 bg-gray-700/50 border-gray-600/50 focus:ring-cyan-600 ring-offset-gray-800">
+                                    <label for="gender-female" class="ml-2 text-sm font-medium text-gray-300">Woman</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Column 2: Months -->
+                    <div class="md:col-span-2">
+                        <label class="block mb-2 text-sm font-medium text-gray-300">Months</label>
+                        <div id="monthCheckboxes" class="max-h-40 overflow-y-auto space-y-2 p-3 bg-gray-700/50 rounded-md">
+                           <!-- Checkboxes are dynamically inserted here as a vertical list --></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results (hidden by default) --><div id="resultsSection" class="hidden bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg rounded-xl overflow-hidden">
+                
+                <div class="p-6">
+                     <h2 id="resultsHeader" class="text-2xl font-semibold mb-6 text-center text-white"></h2>
+                </div>
+                 
+                 <!-- Tab Navigation --><div class="px-6 border-b border-gray-700">
+                    <nav class="flex space-x-2" aria-label="Tabs">
+                        <button id="tab-btn-performance" class="tab-button tab-active" data-tab="performance">
+                            Athletic Performance
+                        </button>
+                        <button id="tab-btn-health" class="tab-button" data-tab="health">
+                            Health & Fitness
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content --><div class="p-6">
+                    <!-- Performance Tab --><div id="tab-content-performance" class="tab-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                            <div class="lg:col-span-3">
+                                <h3 class="text-xl font-semibold text-center mb-4">Performance Polygon</h3>
+                                <div class="relative h-96 md:h-[500px]">
+                                   <canvas id="performanceChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="lg:col-span-2">
+                                <h3 class="text-xl font-semibold text-center mb-4">Raw Performance Data</h3>
+                                <div id="performanceStatsContainer" class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
+                                    <!-- Performance stats dynamically inserted here --></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Health Tab --><div id="tab-content-health" class="tab-content hidden">
+                        <div id="healthStatsContainer" class="space-y-6">
+                            <!-- Health stats dynamically inserted here --></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHept5BU8WyBZap5YEUwFfKZ28rS4ap7unrZKoSjA9Wph5pVk8Um0rPMvawhrTieDR/exec';
+        
+        const genderPerformanceConfig = {
+            male: {
+                '100m':     { min: 19.00, max: 10.50, label: 'ΤΑΧΥΤΗΤΑ' },
+                '400m':     { min: 120.0, max: 54.00, label: 'ΑΝΤΟΧΗ ΣΤΗΝ ΤΑΧΥΤΗΤΑ' },
+                '1000m':    { min: 345.0, max: 179.0, label: 'ΑΝΤΟΧΗ' },
+                'Shot Put': { min: 1.00,  max: 10.50, label: 'ΔΥΝΑΜΗ' },
+                'Long Jump':{ min: 1.10,  max: 6.50,  label: 'ΑΛΤΙΚΟΤΗΤΑ' }
+            },
+            female: {
+                '100m':     { min: 20.00, max: 11.50, label: 'ΤΑΧΥΤΗΤΑ' },
+                '400m':     { min: 135.0, max: 58.00, label: 'ΑΝΤΟΧΗ ΣΤΗΝ ΤΑΧΥΤΗΤΑ' },
+                '1000m':    { min: 360.0, max: 185.0, label: 'ΑΝΤΟΧΗ' },
+                'Shot Put': { min: 1.00,  max: 9.00,  label: 'ΔΥΝΑΜΗ' },
+                'Long Jump':{ min: 1.00,  max: 5.90,  label: 'ΑΛΤΙΚΟΤΗΤΑ' }
+            }
+        };
+
+        const healthMetricConfig = {
+            colors: {
+                blue: '#3b82f6',   // bg-blue-500
+                green: '#22c55e', // bg-green-500
+                red: '#ef4444'     // bg-red-500
+            },
+            male: {
+                BMI: [
+                    { max: 15, color: 'blue' },
+                    { max: 80, color: 'green' },
+                    { max: Infinity, color: 'red' }
+                ],
+                'fat%': [
+                    { max: 17, color: 'blue' },
+                    { max: 25.9, color: 'green' },
+                    { max: Infinity, color: 'red' }
+                ],
+                'Muscle Mass %': [
+                    { max: 20.9, color: 'red' },
+                    { max: 84.9, color: 'green' },
+                    { max: Infinity, color: 'blue' }
+                ]
+            },
+            female: {
+                BMI: [
+                    { max: 15, color: 'blue' },
+                    { max: 80, color: 'green' },
+                    { max: Infinity, color: 'red' }
+                ],
+                'fat%': [
+                    { max: 20, color: 'blue' },
+                    { max: 29.9, color: 'green' },
+                    { max: Infinity, color: 'red' }
+                ],
+                'Muscle Mass %': [
+                    { max: 20.9, color: 'red' },
+                    { max: 84.9, color: 'green' },
+                    { max: Infinity, color: 'blue' }
+                ]
+            }
+        };
+
+        const polygonLabels = ['ΤΑΧΥΤΗΤΑ', 'ΑΝΤΟΧΗ', 'ΔΥΝΑΜΗ', 'ΑΛΤΙΚΟΤΗΤΑ', 'ΑΝΤΟΧΗ ΣΤΗΝ ΤΑΧΥΤΗΤΑ', 'ΑΘΛΗΤΙΚΟΤΗΤΑ'];
+        const comparisonColors = ['#38bdf8', '#fb923c', '#4ade80', '#f87171', '#a78bfa', '#facc15'];
+
+        // --- 2. GLOBAL STATE & DOM ELEMENTS ---
+        let appData = {};
+        let performanceChartInstance = null;
+        const statusSection = document.getElementById('statusSection');
+        const statusText = document.getElementById('statusText');
+        const controlsSection = document.getElementById('controlsSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const athleteSearch = document.getElementById('athleteSearch');
+        const athleteList = document.getElementById('athleteList');
+        const genderSelection = document.getElementById('genderSelection');
+        const monthCheckboxes = document.getElementById('monthCheckboxes');
+        const performanceStatsContainer = document.getElementById('performanceStatsContainer');
+        const healthStatsContainer = document.getElementById('healthStatsContainer');
+        const resultsHeader = document.getElementById('resultsHeader');
+
+        // --- 3. CORE LOGIC ---
+        
+        // NEW HELPER FUNCTION to convert M:SS or MM:SS to total seconds
+        function convertMSToSeconds(timeString) {
+            if (typeof timeString !== 'string') {
+                // Handle cases where it might already be a number
+                const num = parseFloat(String(timeString).replace(',', '.'));
+                return isNaN(num) ? null : num;
+            }
+
+            const parts = timeString.split(':');
+            
+            // If it's not in M:SS format, try to parse as float (for 400m, 100m, etc.)
+            if (parts.length !== 2) {
+                const num = parseFloat(String(timeString).replace(',', '.'));
+                return isNaN(num) ? null : num;
+            }
+            
+            const minutes = parseInt(parts[0], 10);
+            const seconds = parseInt(parts[1], 10);
+            
+            if (isNaN(minutes) || isNaN(seconds)) return null; // Invalid format
+            
+            return (minutes * 60) + seconds;
+        }
+
+        async function fetchData() {
+            const proxyUrl = 'https://corsproxy.io/?';
+            try {
+                const response = await fetch(`${proxyUrl}${GOOGLE_SCRIPT_URL}`);
+                if (!response.ok) throw new Error(`Network error: ${response.statusText}`);
+                const text = await response.text();
+                
+                if (text.trim().startsWith('<')) {
+                    throw new Error('Received HTML instead of JSON. Please check the Google Apps Script deployment permissions. It should be deployed as a Web App with access set to "Anyone".');
+                }
+
+                appData = JSON.parse(text);
+                if (Object.keys(appData).length === 0) throw new Error('Received empty data object, but the connection was successful. Make sure the Google Sheet has data.');
+                initializeControls();
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                statusText.innerHTML = `<span class="text-red-400"><strong>Connection Failed:</strong> ${error.message}</span>`;
+            }
+        }
+        
+        function initializeControls() {
+            const athletes = new Set();
+            Object.values(appData).flat().forEach(a => {
+                if (a && a.Name && a.Surname) athletes.add(`${a.Name} ${a.Surname}`);
+            });
+            
+            Array.from(athletes).sort().forEach(name => {
+                athleteList.innerHTML += `<option value="${name}"></option>`;
+            });
+
+            // Re-styling month selection to a vertical list
+            monthCheckboxes.innerHTML = ''; // Clear previous grid
+            Object.keys(appData).forEach((month, index) => {
+                monthCheckboxes.innerHTML += `
+                    <div class="flex items-center p-1">
+                        <input id="month-${index}" type="checkbox" value="${month}" class="w-4 h-4 text-cyan-600 bg-gray-700/50 border-gray-500/50 rounded focus:ring-cyan-600 ring-offset-gray-900">
+                        <label for="month-${index}" class="ml-2 text-sm font-medium text-gray-300">${month}</label>
+                    </div>`;
+            });
+
+            statusSection.classList.add('hidden');
+            controlsSection.classList.remove('hidden');
+            athleteSearch.addEventListener('input', updateDisplay);
+            genderSelection.addEventListener('change', updateDisplay);
+            monthCheckboxes.addEventListener('change', updateDisplay);
+            initializeTabs();
+        }
+
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+                    
+                    // Update tab button styles
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active');
+                    });
+                    tab.classList.add('tab-active');
+                    
+                    // Show/hide tab content
+                    contents.forEach(c => c.id.includes(target) ? c.classList.remove('hidden') : c.classList.add('hidden'));
+                });
+            });
+
+            // Apply new tab button classes
+            tabs.forEach(tab => {
+                tab.className = 'tab-button whitespace-nowrap py-2 px-5 rounded-lg text-sm font-medium transition-all focus:outline-none';
+                if (tab.id === 'tab-btn-performance') {
+                     tab.classList.add('tab-active');
+                }
+            });
+            document.querySelector('.tab-active').classList.add('bg-cyan-500', 'text-white');
+            document.querySelectorAll('.tab-button:not(.tab-active)').forEach(t => t.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white'));
+
+            // Re-add event listeners with new active classes
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+                    tabs.forEach(t => {
+                        t.classList.remove('tab-active', 'bg-cyan-500', 'text-white');
+                        t.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+                    });
+                    tab.classList.add('tab-active', 'bg-cyan-500', 'text-white');
+                    tab.classList.remove('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+                    
+                    contents.forEach(c => c.id.includes(target) ? c.classList.remove('hidden') : c.classList.add('hidden'));
+                });
+            });
+        }
+
+        function updateDisplay() {
+            const selectedAthlete = athleteSearch.value;
+            const selectedGender = document.querySelector('input[name="gender"]:checked').value;
+            const selectedMonths = Array.from(monthCheckboxes.querySelectorAll('input:checked')).map(cb => cb.value);
+
+            if (!selectedAthlete || selectedMonths.length === 0) {
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            resultsHeader.textContent = `Displaying results for ${selectedAthlete}`;
+            performanceStatsContainer.innerHTML = '';
+            healthStatsContainer.innerHTML = '';
+            const datasets = [];
+
+            selectedMonths.forEach((month, index) => {
+                if (appData[month] && Array.isArray(appData[month])) {
+                    const athleteData = appData[month].find(a => a && `${a.Name} ${a.Surname}` === selectedAthlete);
+                    if (athleteData) {
+                        datasets.push({
+                            label: month,
+                            data: calculatePolygonData(athleteData, selectedGender),
+                            borderColor: comparisonColors[index % comparisonColors.length],
+                            backgroundColor: `${comparisonColors[index % comparisonColors.length]}33`,
+                            pointBackgroundColor: comparisonColors[index % comparisonColors.length],
+                            borderWidth: 3, // Bolder line
+                            pointRadius: 4, // Bigger points
+                            pointHoverRadius: 6, // Bigger points on hover
+                        });
+                        displayPerformanceStats(athleteData, month, comparisonColors[index % comparisonColors.length]);
+                        displayHealthStats(athleteData, month, comparisonColors[index % comparisonColors.length], selectedGender);
+                    }
+                }
+            });
+
+            renderChart(datasets);
+            resultsSection.classList.remove('hidden');
+        }
+        
+        function calculatePolygonData(athleteData, gender) {
+            const performanceConfig = genderPerformanceConfig[gender];
+            if (!performanceConfig) return polygonLabels.map(() => 0); // Safety check
+
+            const scores = {};
+            for (const [key, config] of Object.entries(performanceConfig)) {
+                if (athleteData[key] === undefined || athleteData[key] === '') continue;
+                
+                let value;
+                if (key === '1000m') {
+                    // Use the new conversion function specifically for 1000m
+                    value = convertMSToSeconds(athleteData[key]);
+                } else {
+                    // Use the standard parsing for all other events (100m, 400m, Shot Put, Long Jump)
+                    value = parseFloat(String(athleteData[key]).replace(',', '.'));
+                }
+                
+                if (value === null || isNaN(value)) continue;
+
+                const score = (config.min > config.max)
+                    ? 10 * (config.min - value) / (config.min - config.max)
+                    : 10 * (value - config.min) / (config.max - config.min);
+                
+                scores[config.label] = Math.max(0, Math.min(10, score));
+            }
+            
+            const totalPoints = Object.values(scores).reduce((sum, s) => sum + s, 0);
+            const athleticScore = totalPoints > 7 ? 2 : (totalPoints > 4 ? 1 : 0);
+            
+            return polygonLabels.map(label => label === 'ΑΘΛΗΤΙΚΟΤΗΤΑ' ? athleticScore : (scores[label] || 0));
+        }
+        
+        function renderChart(datasets) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            if (performanceChartInstance) performanceChartInstance.destroy();
+            performanceChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: { labels: polygonLabels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.2)' },
+                            grid: { 
+                                color: function(context) {
+                                    if (context.tick.value === 3) {
+                                        return '#ef4444'; // Red-500
+                                    } else if (context.tick.value === 5) {
+                                        return '#22c55e'; // Green-500
+                                    } else if (context.tick.value === 8) {
+                                        return '#facc15'; // Amber-400 (Yellow)
+                                    } else if (context.tick.value === 10) {
+                                        return '#3b82f6'; // Blue-500
+                                    }
+                                    return 'rgba(255, 255, 255, 0.2)'; // Default grid color
+                                },
+                                lineWidth: function(context) {
+                                    if ([3, 5, 8, 10].includes(context.tick.value)) {
+                                        return 2; // Thicker line for benchmarks
+                                    }
+                                    return 1; // Default line width
+                                }
+                            },
+                            pointLabels: { color: '#f3f4f6', font: { size: 12 } },
+                            ticks: {
+                                display: false, // This hides the numbers (0, 1, 2... 10)
+                                color: '#f3f4f6', backdropColor: 'rgba(0,0,0,0.5)', stepSize: 1,
+                            },
+                            suggestedMin: 0, suggestedMax: 10
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#f3f4f6' } }
+                    }
+                }
+            });
+        }
+
+        // Helper function to format seconds into M:SS
+        function formatSecondsToMS(totalSeconds) {
+            if (isNaN(totalSeconds)) return 'N/A';
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = (totalSeconds % 60).toFixed(0);
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function displayPerformanceStats(data, month, color) {
+            const perfKeys = ['100m', '400m', '1000m', 'Shot Put', 'Long Jump'];
+            let statsHtml = `
+                <div class="bg-gray-900/70 p-4 rounded-lg">
+                    <h4 class="text-lg font-bold" style="color: ${color};">${month}</h4>
+                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">`;
+
+            perfKeys.forEach(key => {
+                const rawValue = data[key] ? String(data[key]).replace(',', '.') : 'N/A';
+                let value = rawValue;
+
+                // Format 400m from seconds to M:SS
+                if (key === '400m' && rawValue !== 'N/A') {
+                    const numSeconds = parseFloat(rawValue);
+                    value = formatSecondsToMS(numSeconds);
+                }
+                
+                statsHtml += `<div><strong class="text-gray-400">${key}:</strong> ${value}</div>`;
+            });
+            
+            statsHtml += `</div></div>`;
+            performanceStatsContainer.innerHTML += statsHtml;
+        }
+
+        function displayHealthStats(data, month, color, gender) {
+            const healthKeys = ['Height', 'kg', 'fat%', 'Muscle Mass', 'Muscle'];
+            
+            const height = parseFloat(String(data['Height']).replace(',', '.'));
+            const weight = parseFloat(String(data['kg']).replace(',', '.'));
+            const fatPercent = parseFloat(String(data['fat%']).replace(',', '.'));
+            const muscleMass = parseFloat(String(data['Muscle Mass'] || data['Muscle']).replace(',', '.'));
+            
+            let bmi = null;
+            if (height && weight && height > 0) {
+                const heightInMeters = height / 100; // Assuming height is in CM
+                bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+            }
+            
+            let musclePercent = null;
+            if (muscleMass && weight && weight > 0) {
+                musclePercent = ((muscleMass / weight) * 100).toFixed(2);
+            }
+
+            const metrics = {
+                'BMI': { value: bmi, max: 100 }, // Using 100 as max for BMI bar
+                'fat%': { value: fatPercent, max: 50 }, // Using 50 as max for Fat% bar
+                'Muscle Mass %': { value: musclePercent, max: 100 } // Using 100 as max for Muscle % bar
+            };
+
+            let statsHtml = `<div class="bg-gray-900/70 p-4 rounded-lg">
+                <h4 class="text-lg font-bold mb-4" style="color: ${color};">${month}</h4>
+                <div class="space-y-4">`;
+
+            // Render bars
+            for (const [key, { value, max }] of Object.entries(metrics)) {
+                if (value !== null && !isNaN(value)) {
+                    const { barColor, barWidth } = getHealthBarDetails(key, value, gender, max);
+                    statsHtml += `
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-gray-300">${key}</span>
+                                <span class="text-sm font-medium" style="color: ${barColor};">${value}${key.includes('%') ? '%' : ''}</span>
+                            </div>
+                            <div class="w-full bg-gray-700/50 rounded-full h-2.5">
+                                <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-300" style="width: ${barWidth}%; background-color: ${barColor};"></div>
+                            </div>
+                        </div>`;
+                }
+            }
+            
+            // Render raw health data
+            statsHtml += `<div class="pt-4 border-t border-gray-700/50 mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">`;
+            healthKeys.forEach(key => {
+                if (data[key]) {
+                    const value = String(data[key]).replace(',', '.');
+                    statsHtml += `<div><strong class="text-gray-400">${key}:</strong> ${value}</div>`;
+                }
+            });
+            statsHtml += `</div></div></div>`;
+            healthStatsContainer.innerHTML += statsHtml;
+        }
+
+        function getHealthBarDetails(metric, value, gender, max) {
+            const config = healthMetricConfig[gender][metric];
+            let barColor = healthMetricConfig.colors.green; // Default
+            
+            if (config) {
+                for (const range of config) {
+                    if (value <= range.max) {
+                        barColor = healthMetricConfig.colors[range.color];
+                        break;
+                    }
+                }
+            }
+            
+            const barWidth = Math.min(100, (value / max) * 100);
+            return { barColor, barWidth };
+        }
+
+        // --- 4. INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', fetchData);
+    </script>
+
+</body>
+</html>
+
+
+
+
+
