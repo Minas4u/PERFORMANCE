@@ -28,6 +28,22 @@
         #monthCheckboxes::-webkit-scrollbar-thumb:hover {
             background: #4b5563; /* bg-gray-500 */
         }
+        
+        /* Tab styling */
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button.tab-active {
+            color: #ffffff;
+            background-color: #06b6d4; /* cyan-500 */
+        }
+        .tab-button:not(.tab-active) {
+            color: #9ca3af; /* gray-400 */
+        }
+        .tab-button:not(.tab-active):hover {
+            background-color: #374151; /* gray-700 */
+            color: #ffffff;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8 antialiased bg-gradient-to-b from-gray-950 to-gray-900">
@@ -41,20 +57,19 @@
         <!-- Main Container --><main id="app-container" class="space-y-8">
             
             <!-- Loading/Error State --><div id="statusSection" class="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg p-6 rounded-xl text-center">
-                 <p id="statusText" class="flex items-center justify-center space-x-3 text-lg">
-                     <svg class="animate-spin h-5 w-5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                     <span>Connecting to Google Sheet...</span>
-                 </p>
+                <p id="statusText" class="flex items-center justify-center space-x-3 text-lg">
+                    <svg class="animate-spin h-5 w-5 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span>Connecting to Google Sheet...</span>
+                </p>
             </div>
 
             <!-- Controls (hidden by default) --><div id="controlsSection" class="hidden bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg p-6 rounded-xl">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Column 1: Athlete & Gender -->
-                    <div class="space-y-6">
+                    <!-- Column 1: Athlete & Gender --><div class="space-y-6">
                         <div>
-                             <label for="athleteSearch" class="block mb-2 text-sm font-medium text-gray-300">Athlete</label>
-                             <input type="text" id="athleteSearch" list="athleteList" class="w-full bg-gray-700/50 border-gray-600/50 text-white text-sm rounded-lg p-2.5 focus:ring-cyan-500 focus:border-cyan-500" placeholder="Search or select...">
-                             <datalist id="athleteList"></datalist>
+                            <label for="athleteSearch" class="block mb-2 text-sm font-medium text-gray-300">Athlete</label>
+                            <input type="text" id="athleteSearch" list="athleteList" class="w-full bg-gray-700/50 border-gray-600/50 text-white text-sm rounded-lg p-2.5 focus:ring-cyan-500 focus:border-cyan-500" placeholder="Search or select...">
+                            <datalist id="athleteList"></datalist>
                         </div>
                         <div>
                             <label class="block mb-2 text-sm font-medium text-gray-300">Gender</label>
@@ -70,9 +85,14 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Column 2: Months -->
-                    <div class="md:col-span-2">
-                        <label class="block mb-2 text-sm font-medium text-gray-300">Months</label>
+                    <!-- Column 2: Months --><div class="md:col-span-2">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-300">Months</label>
+                            <!-- NEW: Select All/None Buttons --><div class="space-x-2">
+                                <button id="selectAllMonths" class="text-xs font-medium text-cyan-400 hover:text-cyan-300">Select All</button>
+                                <button id="deselectAllMonths" class="text-xs font-medium text-gray-400 hover:text-gray-300">Select None</button>
+                            </div>
+                        </div>
                         <div id="monthCheckboxes" class="max-h-40 overflow-y-auto space-y-2 p-3 bg-gray-700/50 rounded-md">
                            <!-- Checkboxes are dynamically inserted here as a vertical list --></div>
                     </div>
@@ -82,46 +102,47 @@
             <!-- Results (hidden by default) --><div id="resultsSection" class="hidden bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 shadow-lg rounded-xl overflow-hidden">
                 
                 <div class="p-6">
-                     <h2 id="resultsHeader" class="text-2xl font-semibold mb-6 text-center text-white"></h2>
+                    <!-- UPDATED: Results header for messages --><h2 id="resultsHeader" class="text-2xl font-semibold mb-6 text-center text-white"></h2>
                 </div>
-                 
-                 <!-- Tab Navigation --><div class="px-6 border-b border-gray-700">
-                    <nav class="flex space-x-2" aria-label="Tabs">
-                        <button id="tab-btn-performance" class="tab-button tab-active" data-tab="performance">
-                            Athletic Performance
-                        </button>
-                        <button id="tab-btn-health" class="tab-button" data-tab="health">
-                            Health & Fitness
-                        </button>
-                        <button id="tab-btn-report" class="tab-button" data-tab="report">
-                            Report
-                        </button>
-                    </nav>
-                </div>
+                
+                <!-- UPDATED: This container wraps all tab content and can be hidden --><div id="resultsContentContainer">
+                    <!-- Tab Navigation --><div class="px-6 border-b border-gray-700">
+                        <nav class="flex space-x-2" aria-label="Tabs">
+                            <button id="tab-btn-performance" class="tab-button whitespace-nowrap py-2 px-5 rounded-lg text-sm font-medium" data-tab="performance">
+                                Athletic Performance
+                            </button>
+                            <button id="tab-btn-health" class="tab-button whitespace-nowrap py-2 px-5 rounded-lg text-sm font-medium" data-tab="health">
+                                Health & Fitness
+                            </button>
+                            <button id="tab-btn-report" class="tab-button whitespace-nowrap py-2 px-5 rounded-lg text-sm font-medium" data-tab="report">
+                                Report
+                            </button>
+                        </nav>
+                    </div>
 
-                <!-- Tab Content --><div class="p-6">
-                    <!-- Performance Tab --><div id="tab-content-performance" class="tab-content">
-                        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                            <div class="lg:col-span-3">
-                                <h3 class="text-xl font-semibold text-center mb-4">Performance Polygon</h3>
-                                <div class="relative h-96 md:h-[500px]">
-                                   <canvas id="performanceChart"></canvas>
+                    <!-- Tab Content --><div class="p-6">
+                        <!-- Performance Tab --><div id="tab-content-performance" class="tab-content">
+                            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                                <div class="lg:col-span-3">
+                                    <h3 class="text-xl font-semibold text-center mb-4">Performance Polygon</h3>
+                                    <div class="relative h-[28rem] md:h-[560px]"> <!-- Adjusted height here --><canvas id="performanceChart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-2">
+                                    <h3 class="text-xl font-semibold text-center mb-4">Raw Performance Data</h3>
+                                    <div id="performanceStatsContainer" class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
+                                        <!-- Performance stats dynamically inserted here --></div>
                                 </div>
                             </div>
-                            <div class="lg:col-span-2">
-                                <h3 class="text-xl font-semibold text-center mb-4">Raw Performance Data</h3>
-                                <div id="performanceStatsContainer" class="space-y-6 max-h-[500px] overflow-y-auto pr-2">
-                                    <!-- Performance stats dynamically inserted here --></div>
-                            </div>
                         </div>
-                    </div>
-                    <!-- Health Tab --><div id="tab-content-health" class="tab-content hidden">
-                        <div id="healthStatsContainer" class="space-y-6">
-                            <!-- Health stats dynamically inserted here --></div>
-                    </div>
-                    <!-- Report Tab --><div id="tab-content-report" class="tab-content hidden">
-                        <div id="reportContainer" class="space-y-6">
-                            <!-- Report text dynamically inserted here --></div>
+                        <!-- Health Tab --><div id="tab-content-health" class="tab-content hidden">
+                            <div id="healthStatsContainer" class="space-y-6">
+                                <!-- Health stats dynamically inserted here --></div>
+                        </div>
+                        <!-- Report Tab --><div id="tab-content-report" class="tab-content hidden">
+                            <div id="reportContainer" class="space-y-6">
+                                <!-- Report text dynamically inserted here --></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -208,11 +229,19 @@
         const performanceStatsContainer = document.getElementById('performanceStatsContainer');
         const healthStatsContainer = document.getElementById('healthStatsContainer');
         const resultsHeader = document.getElementById('resultsHeader');
-        const reportContainer = document.getElementById('reportContainer'); // Added Report container
+        const resultsContentContainer = document.getElementById('resultsContentContainer'); // NEW
+        const reportContainer = document.getElementById('reportContainer');
+        const selectAllMonthsBtn = document.getElementById('selectAllMonths'); // NEW
+        const deselectAllMonthsBtn = document.getElementById('deselectAllMonths'); // NEW
 
         // --- 3. CORE LOGIC ---
         
-        // NEW HELPER FUNCTION to convert M:SS or MM:SS to total seconds
+        /**
+         * Converts M:SS or MM:SS strings to total seconds.
+         * Also handles numbers (as strings or numbers) already in seconds.
+         * @param {string|number} timeString - The time value from the sheet.
+         * @returns {number|null} - Total seconds or null if invalid.
+         */
         function convertMSToSeconds(timeString) {
             if (typeof timeString !== 'string') {
                 // Handle cases where it might already be a number
@@ -278,71 +307,78 @@
 
             statusSection.classList.add('hidden');
             controlsSection.classList.remove('hidden');
+
+            // Add event listeners
             athleteSearch.addEventListener('input', updateDisplay);
             genderSelection.addEventListener('change', updateDisplay);
             monthCheckboxes.addEventListener('change', updateDisplay);
+            
+            // NEW: Listeners for select all/none
+            selectAllMonthsBtn.addEventListener('click', () => {
+                monthCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+                updateDisplay();
+            });
+            deselectAllMonthsBtn.addEventListener('click', () => {
+                monthCheckboxes.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                updateDisplay();
+            });
+
             initializeTabs();
+            updateDisplay(); // Initial call to show "Please select..." message
         }
 
+        /**
+         * REFACTORED: Initializes tab switching logic using classList.
+         */
         function initializeTabs() {
             const tabs = document.querySelectorAll('.tab-button');
             const contents = document.querySelectorAll('.tab-content');
             
+            // Set initial active state
+            tabs[0].classList.add('tab-active');
+            contents[0].classList.remove('hidden');
+
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     const target = tab.getAttribute('data-tab');
                     
                     // Update tab button styles
-                    tabs.forEach(t => {
-                        t.classList.remove('tab-active');
-                    });
+                    tabs.forEach(t => t.classList.remove('tab-active'));
                     tab.classList.add('tab-active');
                     
                     // Show/hide tab content
-                    contents.forEach(c => c.id.includes(target) ? c.classList.remove('hidden') : c.classList.add('hidden'));
-                });
-            });
-
-            // Apply new tab button classes
-            tabs.forEach(tab => {
-                tab.className = 'tab-button whitespace-nowrap py-2 px-5 rounded-lg text-sm font-medium transition-all focus:outline-none';
-                if (tab.id === 'tab-btn-performance') {
-                     tab.classList.add('tab-active');
-                }
-            });
-            document.querySelector('.tab-active').classList.add('bg-cyan-500', 'text-white');
-            document.querySelectorAll('.tab-button:not(.tab-active)').forEach(t => t.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white'));
-
-            // Re-add event listeners with new active classes
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const target = tab.getAttribute('data-tab');
-                    tabs.forEach(t => {
-                        t.classList.remove('tab-active', 'bg-cyan-500', 'text-white');
-                        t.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
+                    contents.forEach(c => {
+                        if (c.id === `tab-content-${target}`) {
+                            c.classList.remove('hidden');
+                        } else {
+                            c.classList.add('hidden');
+                        }
                     });
-                    tab.classList.add('tab-active', 'bg-cyan-500', 'text-white');
-                    tab.classList.remove('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
-                    
-                    contents.forEach(c => c.id.includes(target) ? c.classList.remove('hidden') : c.classList.add('hidden'));
                 });
             });
         }
 
+        /**
+         * UPDATED: Main function to update all UI elements,
+         * now includes better feedback messages.
+         */
         function updateDisplay() {
             const selectedAthlete = athleteSearch.value;
             const selectedGender = document.querySelector('input[name="gender"]:checked').value;
             const selectedMonths = Array.from(monthCheckboxes.querySelectorAll('input:checked')).map(cb => cb.value);
 
+            // Show the results section card
+            resultsSection.classList.remove('hidden');
+
             if (!selectedAthlete || selectedMonths.length === 0) {
-                resultsSection.classList.add('hidden');
+                resultsHeader.textContent = 'Please select an athlete and at least one month.';
+                resultsContentContainer.classList.add('hidden'); // Hide tabs and charts
                 return;
             }
 
-            resultsHeader.textContent = `Displaying results for ${selectedAthlete}`;
             performanceStatsContainer.innerHTML = '';
             healthStatsContainer.innerHTML = '';
-            reportContainer.innerHTML = ''; // Clear report container
+            reportContainer.innerHTML = '';
             const datasets = [];
 
             selectedMonths.forEach((month, index) => {
@@ -350,6 +386,39 @@
                     const athleteData = appData[month].find(a => a && `${a.Name} ${a.Surname}` === selectedAthlete);
                     if (athleteData) {
                         const polygonData = calculatePolygonData(athleteData, selectedGender); // Calculate data once
+                        
+                        // --- NEW: Calculate Health Metrics for Report ---
+                        const height = parseFloat(String(athleteData['Height']).replace(',', '.'));
+                        const weight = parseFloat(String(athleteData['kg']).replace(',', '.'));
+                        const fatPercent = parseFloat(String(athleteData['fat%']).replace(',', '.'));
+                        const muscleMass = parseFloat(String(athleteData['Muscle Mass'] || athleteData['Muscle']).replace(',', '.'));
+                        
+                        let bmi = null;
+                        if (height && weight && height > 0) {
+                            const heightInMeters = height / 100; // Assuming height is in CM
+                            bmi = (weight / (heightInMeters * heightInMeters)).toFixed(2);
+                        }
+                        
+                        let musclePercent = null;
+                        if (muscleMass && weight && weight > 0) {
+                            musclePercent = ((muscleMass / weight) * 100).toFixed(2);
+                        }
+
+                        const healthReportData = {
+                            'BMI': { 
+                                value: bmi, 
+                                color: isNaN(bmi) ? null : getHealthBarDetails('BMI', bmi, selectedGender, 100).barColor
+                            },
+                            'fat%': {
+                                value: fatPercent,
+                                color: isNaN(fatPercent) ? null : getHealthBarDetails('fat%', fatPercent, selectedGender, 50).barColor
+                            },
+                            'Muscle Mass %': {
+                                value: musclePercent,
+                                color: isNaN(musclePercent) ? null : getHealthBarDetails('Muscle Mass %', musclePercent, selectedGender, 100).barColor
+                            }
+                        };
+                        // --- END NEW ---
                         
                         datasets.push({
                             label: month,
@@ -364,15 +433,26 @@
                         });
                         displayPerformanceStats(athleteData, month, comparisonColors[index % comparisonColors.length]);
                         displayHealthStats(athleteData, month, comparisonColors[index % comparisonColors.length], selectedGender);
-                        displayReport(polygonData, month, comparisonColors[index % comparisonColors.length]); // Create report
+                        displayReport(polygonData, healthReportData, month, comparisonColors[index % comparisonColors.length]); // Create report
                     }
                 }
             });
 
-            renderChart(datasets);
-            resultsSection.classList.remove('hidden');
+            // NEW: Check if any data was actually found
+            if (datasets.length === 0) {
+                resultsHeader.textContent = `No data found for ${selectedAthlete} in the selected month(s).`;
+                resultsContentContainer.classList.add('hidden'); // Hide tabs and charts
+            } else {
+                resultsHeader.textContent = `Displaying results for ${selectedAthlete}`;
+                resultsContentContainer.classList.remove('hidden'); // Show tabs and charts
+                renderChart(datasets);
+            }
         }
         
+        /**
+         * UPDATED: Uses convertMSToSeconds for 100m, 400m, and 1000m
+         * for robust parsing.
+         */
         function calculatePolygonData(athleteData, gender) {
             const performanceConfig = genderPerformanceConfig[gender];
             if (!performanceConfig) return polygonLabels.map(() => 0); // Safety check
@@ -382,11 +462,11 @@
                 if (athleteData[key] === undefined || athleteData[key] === '') continue;
                 
                 let value;
-                if (key === '1000m') {
-                    // Use the new conversion function specifically for 1000m
+                // UPDATED: Use robust converter for all time-based events
+                if (key === '1000m' || key === '400m' || key === '100m') {
                     value = convertMSToSeconds(athleteData[key]);
                 } else {
-                    // Use the standard parsing for all other events (100m, 400m, Shot Put, Long Jump)
+                    // Use standard parsing for non-time events (Shot Put, Long Jump)
                     value = parseFloat(String(athleteData[key]).replace(',', '.'));
                 }
                 
@@ -472,7 +552,7 @@
         function displayPerformanceStats(data, month, color) {
             const perfKeys = ['100m', '400m', '1000m', 'Shot Put', 'Long Jump'];
             let statsHtml = `
-                <div class="bg-gray-900/70 p-4 rounded-lg">
+                <div class="bg-gray-900/70 p-4 rounded-lg border border-cyan-500/30 shadow-lg">
                     <h4 class="text-lg font-bold" style="color: ${color};">${month}</h4>
                     <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">`;
 
@@ -518,7 +598,7 @@
                 'Muscle Mass %': { value: musclePercent, max: 100 } // Using 100 as max for Muscle % bar
             };
 
-            let statsHtml = `<div class="bg-gray-900/70 p-4 rounded-lg">
+            let statsHtml = `<div class="bg-gray-900/70 p-4 rounded-lg border border-cyan-500/30 shadow-lg">
                 <h4 class="text-lg font-bold mb-4" style="color: ${color};">${month}</h4>
                 <div class="space-y-4">`;
 
@@ -577,6 +657,7 @@
          * @returns {object} - An object with { text, color }.
          */
         function getReportText(score, label) {
+            // --- FIX: Added the missing logic ---
             if (score <= 3) {
                 return { text: `ΜΕΙΩΜΕΝΗ ${label}`, color: '#ef4444' }; // Red
             } else if (score <= 5) {
@@ -591,25 +672,77 @@
         /**
          * Generates and displays the report for a single month.
          * @param {number[]} polygonData - Array of scores from the polygon.
+         * @param {object} healthReportData - Object with BMI, fat%, Muscle Mass % values and colors.
          * @param {string} month - The name of the month.
          * @param {string} color - The color associated with the month.
          */
-        function displayReport(polygonData, month, color) {
-            let reportHtml = `
-                <div class="bg-gray-900/70 p-4 rounded-lg">
-                    <h4 class="text-lg font-bold" style="color: ${color};">${month}</h4>
-                    <ul class="list-disc list-inside mt-2 space-y-1 text-sm">`;
-
-            polygonLabels.forEach((label, index) => {
+        function displayReport(polygonData, healthReportData, month, color) {
+            
+            // --- 1. Health Metric Translations ---
+            const healthTranslations = {
+                BMI: {
+                    [healthMetricConfig.colors.blue]: 'ΕΛΛΙΠΟΒΑΡΗΣ',
+                    [healthMetricConfig.colors.green]: 'ΦΥΣΙΟΛΟΓΙΚΟ ΒΑΡΟΣ',
+                    [healthMetricConfig.colors.red]: 'ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ ΣΤΟ ΒΑΡΟΣ'
+                },
+                'fat%': {
+                    [healthMetricConfig.colors.blue]: 'ΑΡΙΣΤΟ ΣΩΜΑΤΙΚΟ ΛΙΠΟΣ',
+                    [healthMetricConfig.colors.green]: 'ΦΥΣΙΟΛΟΓΙΚΟ ΣΩΜΑΤΙΚΟ ΛΙΠΟΣ',
+                    [healthMetricConfig.colors.red]: 'ΧΡΕΙΑΖΕΤΑΙ ΠΡΟΣΟΧΗ ΣΤΟ ΛΙΠΟΣ'
+                },
+                'Muscle Mass %': {
+                    [healthMetricConfig.colors.blue]: 'ΧΡΕΙΑΖΕΤΑΙ ΕΝΔΥΝΑΜΩΣΗ',
+                    [healthMetricConfig.colors.green]: 'ΦΥΣΙΟΛΟΓΙΚΗ ΜΥΙΚΗ ΜΑΖΑ',
+                    [healthMetricConfig.colors.red]: 'ΥΨΗΛΗ ΜΥΙΚΗ ΜΑΖΑ'
+                }
+            };
+            
+            // --- 2. Build Performance List Items ---
+            const performanceItems = polygonLabels.map((label, index) => {
                 const score = polygonData[index];
                 const { text, color: textColor } = getReportText(score, label);
-                reportHtml += `
-                    <li>
-                        <span class="font-medium" style="color: ${textColor};">${text}</span>
-                    </li>`;
-            });
+                return `<li><span class="font-medium" style="color: ${textColor};">${text}</span></li>`;
+            }).join('');
 
-            reportHtml += `</ul></div>`;
+            // --- 3. Build Health List Items ---
+            const { BMI, 'fat%': fat, 'Muscle Mass %': muscle } = healthReportData;
+            let healthItems = '';
+
+            if (BMI && BMI.color) {
+                const text = healthTranslations.BMI[BMI.color] || 'BMI (No Data)';
+                healthItems += `<li><span class="font-medium" style="color: ${BMI.color};">${text}</span></li>`;
+            }
+            if (fat && fat.color) {
+                const text = healthTranslations['fat%'][fat.color] || 'Fat% (No Data)';
+                healthItems += `<li><span class="font-medium" style="color: ${fat.color};">${text}</span></li>`;
+            }
+            if (muscle && muscle.color) {
+                const text = healthTranslations['Muscle Mass %'][muscle.color] || 'Muscle% (No Data)';
+                healthItems += `<li><span class="font-medium" style="color: ${muscle.color};">${text}</span></li>`;
+            }
+
+            // --- 4. Build Final HTML ---
+            const reportHtml = `
+                <div class="bg-gray-900/70 p-4 rounded-lg border border-cyan-500/30 shadow-lg">
+                    <h4 class="text-lg font-bold" style="color: ${color};">${month}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        
+                        <!-- Athletic Performance Card --><div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                            <h5 class="text-base font-semibold text-gray-300 mb-1">Athletic Performance</h5>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                ${performanceItems}
+                            </ul>
+                        </div>
+                        
+                        <!-- Health & Fitness Card --><div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                            <h5 class="text-base font-semibold text-gray-300 mb-1">Health & Fitness</h5>
+                            <ul class="list-disc list-inside space-y-1 text-sm">
+                                ${healthItems}
+                            </ul>
+                        </div>
+                    </div>
+                </div>`;
+
             reportContainer.innerHTML += reportHtml;
         }
 
@@ -619,5 +752,4 @@
 
 </body>
 </html>
-
 
